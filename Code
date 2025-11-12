@@ -1,0 +1,214 @@
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <string>
+using namespace std;
+
+
+struct Node {
+    string word;  
+    Node* left;    
+    Node* right;   
+    int height;    
+
+    Node(string w) {
+        word = w;
+        left = nullptr;
+        right = nullptr;
+        height = 1; 
+    }
+};
+
+
+int getHeight(Node* node) {
+    if (node == nullptr) {
+        return 0; 
+    }
+    else {
+        return node->height;
+    }
+}
+
+
+int checkBalance(Node* node) {
+    if (node == nullptr) {
+        return 0;
+    }
+    int leftHeight = getHeight(node->left);
+    int rightHeight = getHeight(node->right);
+
+    int balance = leftHeight - rightHeight;
+    return balance;
+}
+
+
+Node* rotateRight(Node* oldRoot) {
+    Node* newRoot = oldRoot->left; 
+    Node* temporary = newRoot->right; 
+
+    newRoot->right = oldRoot;
+    oldRoot->left = temporary;
+
+    int leftH = getHeight(oldRoot->left);
+    int rightH = getHeight(oldRoot->right);
+
+    int tallerHeight;
+    if (leftH > rightH) {
+        tallerHeight = leftH;
+    }
+    else {
+        tallerHeight = rightH;
+    }
+    oldRoot->height = 1 + tallerHeight;
+
+    leftH = getHeight(newRoot->left);
+    rightH = getHeight(newRoot->right);
+
+    if (leftH > rightH) {
+        tallerHeight = leftH;
+    }
+    else {
+        tallerHeight = rightH;
+    }
+    newRoot->height = 1 + tallerHeight;
+    return newRoot;
+}
+
+
+Node* rotateLeft(Node* oldRoot) {
+    Node* newRoot = oldRoot->right; 
+    Node* temporary = newRoot->left; 
+
+    newRoot->left = oldRoot;
+    oldRoot->right = temporary;
+
+    int leftH = getHeight(oldRoot->left);
+    int rightH = getHeight(oldRoot->right);
+
+    int tallerHeight;
+    if (leftH > rightH) {
+        tallerHeight = leftH;
+    }
+    else {
+        tallerHeight = rightH;
+    }
+    oldRoot->height = 1 + tallerHeight;
+
+    leftH = getHeight(newRoot->left);
+    rightH = getHeight(newRoot->right);
+
+    if (leftH > rightH) {
+        tallerHeight = leftH;
+    }
+    else {
+        tallerHeight = rightH;
+    }
+    newRoot->height = 1 + tallerHeight;
+    return newRoot;
+}
+
+
+Node* insert(Node* currentNode, string word) {
+    if (currentNode == nullptr) {
+        Node* newNode = new Node(word);
+        return newNode;
+    }
+    if (word < currentNode->word) {
+        currentNode->left = insert(currentNode->left, word);
+    }
+    else if (word > currentNode->word) {
+        currentNode->right = insert(currentNode->right, word);
+    }
+    else {
+        return currentNode;
+    }
+
+    int leftH = getHeight(currentNode->left);
+    int rightH = getHeight(currentNode->right);
+    int tallerHeight;
+    if (leftH > rightH) {
+        tallerHeight = leftH;
+    }
+    else {
+        tallerHeight = rightH;
+    }
+    currentNode->height = 1 + tallerHeight;
+
+    int balance = checkBalance(currentNode);
+    if (balance > 1 && word < currentNode->left->word) {
+        return rotateRight(currentNode);
+    }
+    if (balance < -1 && word > currentNode->right->word) {
+        return rotateLeft(currentNode);
+    }
+    if (balance > 1 && word > currentNode->left->word) {
+        currentNode->left = rotateLeft(currentNode->left);
+        return rotateRight(currentNode);
+    }
+    if (balance < -1 && word < currentNode->right->word) {
+        currentNode->right = rotateRight(currentNode->right);
+        return rotateLeft(currentNode);
+    }
+    return currentNode;
+}
+
+
+void findPrefix(Node* root, const string& prefix, vector<string>& results) {
+    if (root == nullptr) {
+        return;
+    }
+    if (root->word.rfind(prefix, 0) == 0) {
+        results.push_back(root->word);
+    }
+    if (prefix < root->word) {
+        findPrefix(root->left, prefix, results);
+    }
+    findPrefix(root->right, prefix, results);
+}
+
+string toLower(string text) {
+    for (int i = 0; i < text.length(); i++) {
+        text[i] = tolower(text[i]);
+    }
+    return text;
+}
+
+
+
+int main() {
+    Node* root = nullptr;
+    ifstream file("dictionary.txt");
+    string word;
+
+    while (file >> word) {
+        word = toLower(word);
+        root = insert(root, word);
+    }
+    file.close();
+
+    string prefix;
+    while (true) {
+        cout << "\nEnter the first letters of the word (Exit to quit program): ";
+        cin >> prefix;
+
+        if (prefix == "exit") {
+            break;
+        }
+
+        prefix = toLower(prefix);
+
+        vector<string> results;
+        findPrefix(root, prefix, results);
+
+        if (results.empty()) {
+            cout << "No matches found." << endl;
+        }
+        else {
+            cout << "Suggestions:" << endl;
+            for (int i = 0; i < results.size(); i++) {
+                cout << " - " << results[i] << endl;
+            }
+        }
+    }
+    return 0;
+}
